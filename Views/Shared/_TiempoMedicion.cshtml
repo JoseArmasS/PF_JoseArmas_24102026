@@ -1,0 +1,10 @@
+@model TiempoMedicionViewModel
+@if (Model.Medicion is { } fecha)
+{
+    <span class="d-block">@fecha.ToString("dd/MM/yyyy HH:mm:ss")</span>
+    <span class="d-block small text-secondary">Tiempo desde la medición: @Model.TiempoTranscurrido</span>
+}
+else
+{
+    <span>Sin medición</span>
+}

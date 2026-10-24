@@ -1,0 +1,106 @@
+@model CrearUsuarioViewModel
+@{
+    ViewData["Title"] = "Crear usuario";
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Seguridad / Usuarios</p>
+    <h1>Crear usuario</h1>
+    <p>Ingresa los datos del usuario y su asignación institucional.</p>
+</div>
+
+@if (TempData["UsuarioCreado"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">
+        @mensaje
+    </div>
+}
+
+<form asp-controller="Usuarios" asp-action="Crear" method="post" class="user-form">
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+    <section class="module-card mb-4" aria-labelledby="datos-usuario">
+        <h2 id="datos-usuario">Datos del usuario</h2>
+        <p>Los campos marcados con * son obligatorios.</p>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="NombreUsuario" class="form-label">Nombre de usuario *</label>
+                <input asp-for="NombreUsuario" class="form-control" autocomplete="off" maxlength="100" />
+                <span asp-validation-for="NombreUsuario" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="NombreCompleto" class="form-label">Nombre completo *</label>
+                <input asp-for="NombreCompleto" class="form-control" autocomplete="name" maxlength="200" />
+                <span asp-validation-for="NombreCompleto" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="CorreoElectronico" class="form-label">Correo electrónico *</label>
+                <input asp-for="CorreoElectronico" type="email" class="form-control" autocomplete="email" maxlength="150" />
+                <span asp-validation-for="CorreoElectronico" class="text-danger"></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="module-card mb-4" aria-labelledby="asignacion-usuario">
+        <h2 id="asignacion-usuario">Asignación institucional</h2>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <label asp-for="CodMunicipalidad" class="form-label">Municipalidad *</label>
+                <select asp-for="CodMunicipalidad" asp-items="Model.Municipalidades" class="form-select" disabled="@(Model.Municipalidades.Count == 0)" aria-describedby="catalogos-pendientes">
+                    <option value="">@(Model.ErrorCatalogos ? "Catálogo no disponible" : Model.Municipalidades.Count == 0 ? "No hay municipalidades registradas" : "Selecciona una municipalidad")</option>
+                </select>
+                <span asp-validation-for="CodMunicipalidad" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="CodRol" class="form-label">Rol *</label>
+                <select asp-for="CodRol" asp-items="Model.Roles" class="form-select" disabled="@(Model.Roles.Count == 0)" aria-describedby="catalogos-pendientes">
+                    <option value="">@(Model.ErrorCatalogos ? "Catálogo no disponible" : Model.Roles.Count == 0 ? "No hay roles registrados" : "Selecciona un rol")</option>
+                </select>
+                <span asp-validation-for="CodRol" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="CodEstadoUsuario" class="form-label">Estado *</label>
+                <select asp-for="CodEstadoUsuario" class="form-select">
+                    <option value="">Selecciona un estado</option>
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+                <span asp-validation-for="CodEstadoUsuario" class="text-danger"></span>
+            </div>
+            <p id="catalogos-pendientes" class="form-text mb-0">La municipalidad y el rol se seleccionan de los registros existentes en SQL Server.</p>
+        </div>
+    </section>
+
+    <section class="module-card mb-4" aria-labelledby="credenciales-usuario">
+        <h2 id="credenciales-usuario">Credenciales</h2>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <label asp-for="Contrasena" class="form-label">Contraseña *</label>
+                <input asp-for="Contrasena" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Contrasena" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ConfirmarContrasena" class="form-label">Confirmar contraseña *</label>
+                <input asp-for="ConfirmarContrasena" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmarContrasena" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="FechaExpiracionContrasena" class="form-label"></label>
+                <input asp-for="FechaExpiracionContrasena" class="form-control" aria-describedby="expiracion-ayuda" />
+                <span asp-validation-for="FechaExpiracionContrasena" class="text-danger"></span>
+                <div id="expiracion-ayuda" class="form-text">Opcional.</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="d-flex flex-wrap align-items-center gap-3">
+        <button type="submit" class="btn btn-primary">
+            Crear usuario
+        </button>
+        <a asp-controller="Home" asp-action="Index" asp-fragment="seguridad" class="btn btn-outline-secondary">Volver al menú</a>
+        
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

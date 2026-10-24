@@ -1,0 +1,126 @@
+@model ParqueosViewModel
+@using TransMetroUMG.Domain
+@{
+    ViewData["Title"] = "Parqueos";
+    var editando = Model.Formulario.CodParqueo > 0;
+    var estaciones = Model.Estaciones.ToDictionary(x => x.Codigo, x => x);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Parqueos / Administración</p>
+    <h1>Parqueos</h1>
+    <p>Registra parqueos asociados a estaciones y administra su capacidad y estado.</p>
+</div>
+
+@if (TempData["ParqueoGuardado"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">@(editando ? "Editar parqueo" : "Ingresar parqueo")</h2>
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="Formulario.CodParqueo" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="Formulario.CodEstacion" class="form-label">Estación *</label>
+                <select asp-for="Formulario.CodEstacion" class="form-select">
+                    <option value="">Selecciona una estación</option>
+                    @foreach (var opcionEstacion in Model.Estaciones)
+                    {
+                        <option value="@opcionEstacion.Codigo">@opcionEstacion.Nombre — @opcionEstacion.Municipalidad (#@opcionEstacion.Codigo)</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodEstacion" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.Estado" class="form-label">Estado *</label>
+                <select asp-for="Formulario.Estado" asp-items="Html.GetEnumSelectList<EstadoParqueo>()" class="form-select">
+                    <option value="">Selecciona un estado</option>
+                </select>
+                <span asp-validation-for="Formulario.Estado" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Formulario.NombreParqueo" class="form-label">Nombre del parqueo *</label>
+                <input asp-for="Formulario.NombreParqueo" class="form-control" maxlength="150" />
+                <span asp-validation-for="Formulario.NombreParqueo" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Formulario.DireccionParqueo" class="form-label">Dirección *</label>
+                <input asp-for="Formulario.DireccionParqueo" class="form-control" maxlength="250" autocomplete="street-address" />
+                <span asp-validation-for="Formulario.DireccionParqueo" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CapacidadTotal" class="form-label">Capacidad total *</label>
+                <input asp-for="Formulario.CapacidadTotal" class="form-control" type="number" min="1" max="2147483647" step="1" />
+                <span asp-validation-for="Formulario.CapacidadTotal" class="text-danger"></span>
+                <div class="form-text">Cantidad de vehículos que puede albergar el parqueo.</div>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">@(editando ? "Guardar cambios" : "Registrar parqueo")</button>
+            @if (editando)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar edición</a>
+            }
+            <a asp-controller="Home" asp-action="Index" asp-fragment="parqueos" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Parqueos registrados</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">
+            No se pudo consultar el listado. <a asp-action="Index">Reintentar</a>
+        </div>
+    }
+    else if (Model.Registros.Count == 0)
+    {
+        <p role="status">No hay parqueos registrados. Ingresa el primero en el formulario.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Registros.Count parqueos registrados.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Código</th>
+                        <th scope="col">Estación</th>
+                        <th scope="col">Municipalidad</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Dirección</th>
+                        <th scope="col">Capacidad</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var parqueo in Model.Registros)
+                    {
+                        <tr>
+                            <td>@parqueo.CodParqueo</td>
+                            <td>@(estaciones.GetValueOrDefault(parqueo.CodEstacion)?.Nombre ?? parqueo.CodEstacion.ToString())</td>
+                            <td>@estaciones.GetValueOrDefault(parqueo.CodEstacion)?.Municipalidad</td>
+                            <td>@parqueo.NombreParqueo</td>
+                            <td>@parqueo.DireccionParqueo</td>
+                            <td>@parqueo.CapacidadTotal</td>
+                            <td>@parqueo.Estado</td>
+                            <td><a asp-action="Index" asp-route-id="@parqueo.CodParqueo"
+                                   class="btn btn-sm btn-outline-secondary" aria-label="Editar @parqueo.NombreParqueo">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

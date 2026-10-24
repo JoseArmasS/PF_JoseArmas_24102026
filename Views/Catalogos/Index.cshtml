@@ -1,0 +1,81 @@
+@model CatalogosViewModel
+@{
+    ViewData["Title"] = "Catálogos";
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Administración / Catálogos</p>
+    <h1>Catálogos</h1>
+    <p>Consulta las municipalidades y los roles disponibles para asignar a los usuarios.</p>
+</div>
+
+<nav class="d-flex flex-wrap gap-3 mb-4" aria-label="Catálogos disponibles">
+    <a class="btn btn-outline-secondary" asp-controller="Municipalidades" asp-action="Index">Municipalidades</a>
+    <a class="btn btn-outline-secondary" asp-controller="Roles" asp-action="Index">Crear roles</a>
+    <a class="btn btn-outline-secondary" asp-controller="Usuarios" asp-action="Crear">Crear usuario</a>
+</nav>
+
+@if (Model.ErrorCarga)
+{
+    <div class="alert alert-danger" role="alert">
+        No se pudieron cargar los catálogos desde SQL Server. Intenta nuevamente o contacta al administrador.
+        <a asp-action="Index">Reintentar</a>
+    </div>
+}
+
+<div class="module-grid">
+    <section id="municipalidades" class="module-card" aria-labelledby="titulo-municipalidades">
+        <h2 id="titulo-municipalidades">Municipalidades</h2>
+        <p>Organizaciones municipales registradas en el sistema.</p>
+        @if (Model.ErrorCarga)
+        {
+            <p>Catálogo no disponible.</p>
+        }
+        else if (Model.Municipalidades.Count == 0)
+        {
+            <p role="status">No hay municipalidades registradas.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <caption>@Model.Municipalidades.Count municipalidades registradas</caption>
+                    <thead><tr><th scope="col">Código</th><th scope="col">Municipalidad</th></tr></thead>
+                    <tbody>
+                        @foreach (var municipalidad in Model.Municipalidades)
+                        {
+                            <tr><td>@municipalidad.Codigo</td><td>@municipalidad.Nombre</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+    <section id="roles" class="module-card" aria-labelledby="titulo-roles">
+        <h2 id="titulo-roles">Roles</h2>
+        <p>Roles registrados para la asignación de usuarios.</p>
+        @if (Model.ErrorCarga)
+        {
+            <p>Catálogo no disponible.</p>
+        }
+        else if (Model.Roles.Count == 0)
+        {
+            <p role="status">No hay roles registrados.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <caption>@Model.Roles.Count roles registrados</caption>
+                    <thead><tr><th scope="col">Código</th><th scope="col">Rol</th></tr></thead>
+                    <tbody>
+                        @foreach (var rol in Model.Roles)
+                        {
+                            <tr><td>@rol.Codigo</td><td>@rol.Nombre</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>

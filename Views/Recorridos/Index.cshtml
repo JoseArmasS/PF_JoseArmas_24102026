@@ -1,0 +1,123 @@
+@model RecorridosViewModel
+@{
+    ViewData["Title"] = "Recorrido de estaciones";
+    var editando = Model.Formulario.CodLineaEstacion > 0;
+    var lineas = Model.Lineas.ToDictionary(x => x.Codigo, x => x.Nombre);
+    var estaciones = Model.Estaciones.ToDictionary(x => x.Codigo, x => x.Nombre);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Administración / Recorrido de estaciones</p>
+    <h1>Recorrido de estaciones</h1>
+    <p>Asigna estaciones a una línea y define su orden y distancia entre estaciones.</p>
+</div>
+
+@if (TempData["RecorridoGuardado"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">@(editando ? "Editar recorrido" : "Agregar estación al recorrido")</h2>
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="Formulario.CodLineaEstacion" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label asp-for="Formulario.CodLinea" class="form-label">Línea *</label>
+                <select asp-for="Formulario.CodLinea" class="form-select">
+                    <option value="">Selecciona una línea</option>
+                    @foreach (var linea in Model.Lineas)
+                    {
+                        <option value="@linea.Codigo">@linea.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodLinea" class="text-danger"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Formulario.CodEstacion" class="form-label">Estación *</label>
+                <select asp-for="Formulario.CodEstacion" class="form-select">
+                    <option value="">Selecciona una estación</option>
+                    @foreach (var estacion in Model.Estaciones)
+                    {
+                        <option value="@estacion.Codigo">@estacion.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodEstacion" class="text-danger"></span>
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Formulario.OrdenEstacion" class="form-label">Orden *</label>
+                <input asp-for="Formulario.OrdenEstacion" class="form-control" type="number" min="1" step="1" />
+                <span asp-validation-for="Formulario.OrdenEstacion" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.DistanciaSiguienteKm" class="form-label">Distancia a la siguiente estación (km)</label>
+                <input asp-for="Formulario.DistanciaSiguienteKm" class="form-control" type="number" min="0.001" max="99999.999" step="0.001" aria-describedby="ayuda-distancia" />
+                <span asp-validation-for="Formulario.DistanciaSiguienteKm" class="text-danger"></span>
+                <div id="ayuda-distancia" class="form-text">Opcional, hasta tres decimales. Ejemplo: 1.250 km = 1250 m. La misma distancia se utiliza al regresar. Deja vacía la de la última estación.</div>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">@(editando ? "Guardar cambios" : "Agregar estación")</button>
+            @if (editando)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar edición</a>
+            }
+            <a asp-controller="Home" asp-action="Index" asp-fragment="administracion" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Estaciones por línea</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">
+            No se pudo consultar el listado. <a asp-action="Index">Reintentar</a>
+        </div>
+    }
+    else if (Model.Registros.Count == 0)
+    {
+        <p role="status">No hay estaciones asignadas a los recorridos.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Registros.Count estaciones asignadas a los recorridos.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Código</th>
+                        <th scope="col">Línea</th>
+                        <th scope="col">Orden</th>
+                        <th scope="col">Estación</th>
+                        <th scope="col">Siguiente estación</th>
+                        <th scope="col">Distancia del tramo (km)</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var recorrido in Model.Registros)
+                    {
+                        <tr>
+                            <td>@recorrido.CodLineaEstacion</td>
+                            <td>@lineas.GetValueOrDefault(recorrido.CodLinea, recorrido.CodLinea.ToString())</td>
+                            <td>@recorrido.OrdenEstacion</td>
+                            <td>@estaciones.GetValueOrDefault(recorrido.CodEstacion, recorrido.CodEstacion.ToString())</td>
+                            <td>@(Model.EstacionesSiguientes.TryGetValue(recorrido.CodLineaEstacion, out var siguiente) ? estaciones.GetValueOrDefault(siguiente, siguiente.ToString()) : "Fin del recorrido de ida")</td>
+                            <td>@(recorrido.DistanciaSiguienteKm?.ToString("0.000") ?? (Model.EstacionesSiguientes.ContainsKey(recorrido.CodLineaEstacion) ? "Pendiente" : "No aplica"))</td>
+                            <td><a asp-action="Index" asp-route-id="@recorrido.CodLineaEstacion"
+                                   class="btn btn-sm btn-outline-secondary" aria-label="Editar recorrido @recorrido.CodLineaEstacion">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

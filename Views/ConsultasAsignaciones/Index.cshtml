@@ -1,0 +1,145 @@
+@model ConsultasAsignacionesViewModel
+@{
+    var esParqueos = Model.ConsultaParqueos;
+    var titulo = esParqueos ? "Consulta de estaciones, parqueos y buses" : "Consulta de pilotos y buses";
+    var accion = esParqueos ? "Parqueos" : "Pilotos";
+    ViewData["Title"] = titulo;
+    var total = esParqueos ? Model.EstacionesParqueos.Total : Model.PilotosBuses.Total;
+    var pagina = esParqueos ? Model.EstacionesParqueos.Pagina : Model.PilotosBuses.Pagina;
+    var paginas = esParqueos ? Model.EstacionesParqueos.TotalPaginas : Model.PilotosBuses.TotalPaginas;
+    var filtros = new Dictionary<string, string>();
+    if (Model.Municipalidad.HasValue) filtros["municipalidad"] = Model.Municipalidad.Value.ToString();
+    if (Model.Bus.HasValue) filtros["bus"] = Model.Bus.Value.ToString();
+    if (esParqueos)
+    {
+        if (Model.Estacion.HasValue) filtros["estacion"] = Model.Estacion.Value.ToString();
+        if (Model.Parqueo.HasValue) filtros["parqueo"] = Model.Parqueo.Value.ToString();
+    }
+    else
+    {
+        if (Model.Piloto.HasValue) filtros["piloto"] = Model.Piloto.Value.ToString();
+        if (Model.Fecha.HasValue) filtros["fecha"] = Model.Fecha.Value.ToString("yyyy-MM-dd");
+    }
+}
+<div class="page-heading">
+    <p class="eyebrow">Consultas / Asignaciones</p>
+    <h1>@titulo</h1>
+    <p>@(esParqueos ? "Consulta los buses que tienen cada parqueo como base. Esta asignación no indica la ubicación física actual del bus." : "Consulta las asignaciones de buses a pilotos por fecha y línea. Una asignación no implica que el bus esté operando.")</p>
+</div>
+
+<section class="module-card mb-4" aria-labelledby="titulo-filtros">
+    <h2 id="titulo-filtros">Filtrar consulta</h2>
+    <form asp-action="@accion" method="get" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3">
+                <label asp-for="Municipalidad" class="form-label">@(esParqueos ? "Municipalidad de la estación" : "Municipalidad del piloto")</label>
+                <select asp-for="Municipalidad" class="form-select">
+                    <option value="">Todas las municipalidades</option>
+                    @foreach (var opcion in Model.Catalogos.Municipalidades) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            @if (esParqueos)
+            {
+                <div class="col-md-6 col-xl-3">
+                    <label asp-for="Estacion" class="form-label">Estación</label>
+                    <select asp-for="Estacion" class="form-select">
+                        <option value="">Todas las estaciones</option>
+                        @foreach (var opcion in Model.Catalogos.Estaciones) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                    </select>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <label asp-for="Parqueo" class="form-label">Parqueo base</label>
+                    <select asp-for="Parqueo" class="form-select">
+                        <option value="">Todos los parqueos</option>
+                        @foreach (var opcion in Model.Parqueos) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-md-6 col-xl-3">
+                    <label asp-for="Piloto" class="form-label">Piloto</label>
+                    <select asp-for="Piloto" class="form-select">
+                        <option value="">Todos los pilotos</option>
+                        @foreach (var opcion in Model.Catalogos.Pilotos) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                    </select>
+                </div>
+                <div class="col-md-6 col-xl-3">
+                    <label asp-for="Fecha" class="form-label">Fecha de asignación</label>
+                    <input asp-for="Fecha" type="date" class="form-control" />
+                </div>
+            }
+            <div class="col-md-6 col-xl-3">
+                <label asp-for="Bus" class="form-label">Bus</label>
+                <select asp-for="Bus" class="form-select">
+                    <option value="">Todos los buses</option>
+                    @foreach (var opcion in Model.Catalogos.Buses) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+        </div>
+        <p class="form-text mt-3">@(esParqueos ? "Se incluyen estaciones sin parqueos y parqueos sin buses asignados. Los filtros se combinan." : "Sin fecha se muestra todo el historial de asignaciones. Se incluyen pilotos sin asignación para la fecha consultada. Los filtros se combinan.")</p>
+        <div class="d-flex flex-wrap gap-3">
+            <button type="submit" class="btn btn-primary">Consultar</button>
+            <a asp-action="@accion" class="btn btn-outline-secondary">Limpiar filtros</a>
+            <a asp-controller="Home" asp-action="Index" asp-fragment="@(esParqueos ? "parqueos" : "transporte")" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-resultados">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <h2 id="titulo-resultados">Resultado de la consulta</h2>
+        @if (!Model.ErrorCarga && ViewData.ModelState.IsValid) { <span class="module-status">@total registros</span> }
+    </div>
+    @if (Model.ErrorCarga)
+    {
+        <p role="alert">No se pudo cargar el resultado. <a asp-action="@accion" asp-all-route-data="filtros">Reintentar</a>.</p>
+    }
+    else if (!ViewData.ModelState.IsValid)
+    {
+        <p role="status">Revisa los filtros para realizar la consulta.</p>
+    }
+    else if (total == 0)
+    {
+        <p role="status">No hay registros que coincidan con los filtros seleccionados.</p>
+    }
+    else
+    {
+        <div class="table-responsive bus-operations-scroll" role="region" aria-labelledby="titulo-resultados" tabindex="0">
+            <table class="table table-striped table-hover align-top mb-0">
+                <caption>@total registros. Página @pagina de @paginas. Hasta 50 filas por página.</caption>
+                @if (esParqueos)
+                {
+                    <thead><tr><th scope="col">Municipalidad</th><th scope="col">Estación</th><th scope="col">Parqueo base</th><th scope="col">Capacidad del parqueo (vehículos)</th><th scope="col">Bus asignado</th><th scope="col">Placa</th><th scope="col">Capacidad del bus (pasajeros)</th></tr></thead>
+                    <tbody>
+                        @foreach (var fila in Model.EstacionesParqueos.Filas)
+                        {
+                            <tr><td>@fila.Municipalidad</td><th scope="row">@fila.Estacion <small class="text-secondary">(#@fila.CodigoEstacion)</small></th>
+                                <td>@(fila.Parqueo ?? "Sin parqueos") @if (fila.CodigoParqueo.HasValue) { <small class="text-secondary">(#@fila.CodigoParqueo)</small> }</td>
+                                <td>@(fila.CapacidadParqueo?.ToString() ?? "—")</td><td>@(fila.Bus ?? (fila.CodigoParqueo.HasValue ? "Sin buses asignados" : "—"))</td>
+                                <td>@(fila.Placa ?? "—")</td><td>@(fila.CapacidadBus?.ToString() ?? "—")</td></tr>
+                        }
+                    </tbody>
+                }
+                else
+                {
+                    <thead><tr><th scope="col">Municipalidad</th><th scope="col">Piloto</th><th scope="col">Licencia</th><th scope="col">Teléfono</th><th scope="col">Asignación</th><th scope="col">Fecha</th><th scope="col">Bus</th><th scope="col">Placa</th><th scope="col">Capacidad (pasajeros)</th><th scope="col">Línea</th></tr></thead>
+                    <tbody>
+                        @foreach (var fila in Model.PilotosBuses.Filas)
+                        {
+                            <tr><td>@fila.Municipalidad</td><th scope="row">@fila.Piloto <small class="text-secondary">(#@fila.CodigoPiloto)</small></th><td>@fila.Licencia</td><td>@(fila.Telefono ?? "Sin registrar")</td>
+                                <td>@(fila.CodigoAsignacion?.ToString() ?? "Sin asignación")</td><td class="text-nowrap">@(fila.Fecha?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                <td>@(fila.Bus ?? "Sin bus asignado")</td><td>@(fila.Placa ?? "—")</td><td>@(fila.Capacidad?.ToString() ?? "—")</td><td>@(fila.Linea ?? "—")</td></tr>
+                        }
+                    </tbody>
+                }
+            </table>
+        </div>
+        <nav class="d-flex flex-wrap align-items-center gap-3 mt-3" aria-label="Páginas de la consulta">
+            @if (pagina > 1) { <a asp-action="@accion" asp-all-route-data="filtros" asp-route-pagina="@(pagina - 1)" class="btn btn-outline-secondary">Anterior</a> }
+            <span class="small">Página @pagina de @paginas</span>
+            @if (pagina < paginas) { <a asp-action="@accion" asp-all-route-data="filtros" asp-route-pagina="@(pagina + 1)" class="btn btn-outline-secondary">Siguiente</a> }
+        </nav>
+    }
+</section>

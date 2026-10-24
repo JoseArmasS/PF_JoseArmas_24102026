@@ -1,0 +1,116 @@
+@{
+    ViewData["Title"] = "Vista previa de operación por ciclos";
+}
+<div class="cycle-preview">
+    <div class="page-heading d-flex flex-wrap justify-content-between gap-3 align-items-start">
+        <div>
+            <p class="eyebrow">Operaciones / Propuesta de pantalla</p>
+            <h1>Operación de buses</h1>
+            <p>Tu estación, los buses y la siguiente acción.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">Volver a la pantalla actual</a>
+    </div>
+    <div class="cycle-preview-notice mb-4" role="note">
+        <strong>Vista previa interactiva</strong>
+        <span>Datos de ejemplo. Puedes simular un ciclo; no se guardan movimientos y recargar reinicia el ejemplo.</span>
+    </div>
+    <noscript><div class="alert alert-info">Activa JavaScript para probar la simulación.</div></noscript>
+
+    <section class="module-card mb-4" aria-labelledby="cycle-prepare-title">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+            <h2 id="cycle-prepare-title">Preparar salida</h2>
+            <span class="small text-secondary">1. Estación · 2. Línea · 3. Bus</span>
+        </div>
+        <form id="cycle-prepare" class="user-form">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="cycle-origin" class="form-label">Estación de inicio</label>
+                    <select id="cycle-origin" class="form-select">
+                        <option value="0">Estación A</option><option value="1">Estación B</option>
+                        <option value="2" selected>Estación C</option><option value="3">Estación D</option><option value="4">Estación E</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="cycle-line" class="form-label">Línea</label>
+                    <select id="cycle-line" class="form-select"><option>Línea 1 · A ↔ E (ejemplo)</option></select>
+                </div>
+                <div class="col-md-4">
+                    <label for="cycle-bus" class="form-label">Bus y piloto</label>
+                    <select id="cycle-bus" class="form-select">
+                        <option value="12">Bus 12 · Piloto de ejemplo 1</option>
+                        <option value="18">Bus 18 · Piloto de ejemplo 2</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-end gap-3 mt-3">
+                <div>
+                    <label for="cycle-direction" class="form-label">Sentido inicial</label>
+                    <select id="cycle-direction" class="form-select">
+                        <option value="1">Hacia estación E</option><option value="-1">Hacia estación A</option>
+                    </select>
+                </div>
+                <button id="cycle-start" type="submit" class="btn btn-primary">Simular inicio de operación</button>
+                <span class="small text-secondary">Capacidad del bus de ejemplo: 60 pasajeros.</span>
+            </div>
+        </form>
+    </section>
+
+    <div class="operation-readings">
+        <div class="operation-readings-column">
+            <section class="module-card mb-4" aria-labelledby="cycle-station-title">
+                <p class="eyebrow">Estación de trabajo · ejemplo</p>
+                <h2 id="cycle-station-title">Estación C</h2>
+                <p id="cycle-station-help">Selecciona tu estación y prepara la salida de un bus.</p>
+                <div class="cycle-station-count"><strong>45</strong><span>pasajeros esperando · ejemplo</span></div>
+                <div class="d-flex justify-content-between small mt-3"><span>Capacidad: 100</span><span>45 %</span></div>
+                <div class="progress mt-2" role="progressbar" aria-label="Ocupación de estación de ejemplo" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width:45%; background-color:var(--menu-accent)"></div>
+                </div>
+                <details class="mt-4">
+                    <summary>Última medición de ejemplo</summary>
+                    <p class="small text-secondary mt-2 mb-0">45 pasajeros sobre una capacidad de 100. El registro real de ocupación permanece en la pantalla actual.</p>
+                </details>
+            </section>
+        </div>
+        <div class="operation-readings-column">
+            <section class="module-card mb-4" aria-labelledby="cycle-buses-title">
+                <div class="d-flex justify-content-between gap-2"><h2 id="cycle-buses-title">Buses</h2><span id="cycle-count" class="module-status">Sin operaciones</span></div>
+                <p>Elige un bus para atender su siguiente paso.</p>
+                <div class="table-responsive cycle-table-scroll" role="region" aria-labelledby="cycle-buses-title" tabindex="0">
+                    <table class="table table-hover align-middle mb-0">
+                        <caption class="small">Simulación de un bus. La tabla tendrá desplazamiento al crecer.</caption>
+                        <thead><tr><th scope="col">Bus</th><th scope="col">Situación</th><th scope="col">Destino</th><th scope="col">Acción</th></tr></thead>
+                        <tbody id="cycle-buses"><tr><td colspan="4" class="text-secondary py-4">Prepara una salida para ver el bus aquí.</td></tr></tbody>
+                    </table>
+                </div>
+
+                <section id="cycle-attention" class="cycle-attention mt-3" aria-labelledby="cycle-attention-title" hidden>
+                    <div class="d-flex justify-content-between gap-2">
+                        <h3 id="cycle-attention-title" class="h6 mb-0">Atender bus</h3>
+                        <span id="cycle-state" class="module-status"></span>
+                    </div>
+                    <p id="cycle-context" class="small mt-2"></p>
+                    <form id="cycle-occupancy" class="user-form mb-3">
+                        <label for="cycle-passengers" class="form-label">Pasajeros dentro del bus</label>
+                        <div class="input-group">
+                            <input id="cycle-passengers" class="form-control" type="number" min="0" max="60" step="1" value="30" required />
+                            <button class="btn btn-outline-secondary" type="submit">Simular medición</button>
+                        </div>
+                        <span id="cycle-occupancy-value" class="small text-secondary">Sin medición en esta visita.</span>
+                    </form>
+                    <button id="cycle-next" type="button" class="btn btn-primary w-100"></button>
+                    <p id="cycle-feedback" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                    <details class="mt-3">
+                        <summary>Ver recorrido e historial de ejemplo</summary>
+                        <p id="cycle-route" class="small mt-2"></p>
+                        <ol id="cycle-history" class="small mb-0"></ol>
+                    </details>
+                </section>
+            </section>
+        </div>
+    </div>
+    <p class="small text-secondary">Las confirmaciones se simulan manualmente. Las reglas de espera y su persistencia se incorporarán en la implementación del ciclo.</p>
+</div>
+@section Scripts {
+    <script src="~/js/operacion-ciclo-preview.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,136 @@
+@model AsignacionesViewModel
+@{
+    ViewData["Title"] = "Asignación de buses a líneas";
+    var editando = Model.Formulario.CodAsignacionBus > 0;
+    var buses = Model.Buses.ToDictionary(x => x.Codigo, x => x.Nombre);
+    var pilotos = Model.Pilotos.ToDictionary(x => x.Codigo, x => x.Nombre);
+    var lineas = Model.Lineas.ToDictionary(x => x.Codigo, x => x.Nombre);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Buses y pilotos / Asignación de buses a líneas</p>
+    <h1>Asignación de buses a líneas</h1>
+    <p>Asigna un bus, un piloto y una línea para una fecha y consulta o modifica las asignaciones registradas.</p>
+</div>
+
+@if (TempData["AsignacionGuardada"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">@(editando ? "Editar asignación" : "Ingresar asignación")</h2>
+    @if (!Model.ErrorCarga && (Model.Buses.Count == 0 || Model.Pilotos.Count == 0 || Model.Lineas.Count == 0))
+    {
+        <div class="alert alert-info" role="status">
+            Para registrar una asignación necesitas al menos un bus, un piloto y una línea.
+            <a asp-controller="Buses" asp-action="Index">Buses</a> ·
+            <a asp-controller="Pilotos" asp-action="Index">Pilotos</a> ·
+            <a asp-controller="Lineas" asp-action="Index">Líneas</a>
+        </div>
+    }
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="Formulario.CodAsignacionBus" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Formulario.FechaAsignacion" class="form-label">Fecha de asignación *</label>
+                <input asp-for="Formulario.FechaAsignacion" class="form-control" />
+                <span asp-validation-for="Formulario.FechaAsignacion" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CodBus" class="form-label">Bus *</label>
+                <select asp-for="Formulario.CodBus" class="form-select">
+                    <option value="">Selecciona un bus</option>
+                    @foreach (var bus in Model.Buses)
+                    {
+                        <option value="@bus.Codigo">@bus.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodBus" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CodPiloto" class="form-label">Piloto *</label>
+                <select asp-for="Formulario.CodPiloto" class="form-select">
+                    <option value="">Selecciona un piloto</option>
+                    @foreach (var piloto in Model.Pilotos)
+                    {
+                        <option value="@piloto.Codigo">@piloto.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodPiloto" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CodLinea" class="form-label">Línea *</label>
+                <select asp-for="Formulario.CodLinea" class="form-select">
+                    <option value="">Selecciona una línea</option>
+                    @foreach (var linea in Model.Lineas)
+                    {
+                        <option value="@linea.Codigo">@linea.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodLinea" class="text-danger"></span>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">@(editando ? "Guardar cambios" : "Registrar asignación")</button>
+            @if (editando)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar edición</a>
+            }
+            <a asp-controller="OperacionBuses" asp-action="Index" class="btn btn-outline-secondary">Consultar operación de buses</a>
+            <a asp-controller="Home" asp-action="Index" asp-fragment="transporte" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Asignaciones registradas</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">
+            No se pudo consultar el listado. <a asp-action="Index">Reintentar</a>
+        </div>
+    }
+    else if (Model.Registros.Count == 0)
+    {
+        <p role="status">No hay asignaciones registradas. Ingresa la primera en el formulario.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Registros.Count asignaciones registradas.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Código</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Bus y placa</th>
+                        <th scope="col">Piloto y licencia</th>
+                        <th scope="col">Línea</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var asignacion in Model.Registros)
+                    {
+                        <tr>
+                            <td>@asignacion.CodAsignacionBus</td>
+                            <td>@asignacion.FechaAsignacion.ToString("dd/MM/yyyy")</td>
+                            <td>@buses.GetValueOrDefault(asignacion.CodBus, asignacion.CodBus.ToString())</td>
+                            <td>@pilotos.GetValueOrDefault(asignacion.CodPiloto, asignacion.CodPiloto.ToString())</td>
+                            <td>@lineas.GetValueOrDefault(asignacion.CodLinea, asignacion.CodLinea.ToString())</td>
+                            <td><a asp-action="Index" asp-route-id="@asignacion.CodAsignacionBus"
+                                   class="btn btn-sm btn-outline-secondary" aria-label="Editar asignación @asignacion.CodAsignacionBus">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

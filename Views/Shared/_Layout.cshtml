@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TransMetro</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/TransMetroUMG.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+    <div class="app-shell">
+        @if (ViewData["OcultarMenu"] is not true)
+        {
+            <partial name="_MenuPrincipal" />
+        }
+        <div class="app-content">
+            <header class="app-header">
+                <span>Transporte metropolitano</span>
+                <span class="header-label">TransMetro</span>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-controller="Cuenta" asp-action="CerrarSesion" method="post" class="d-flex align-items-center gap-2">
+                        <span>@User.Identity.Name</span>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Cerrar sesión</button>
+                    </form>
+                }
+                else if (ViewData["OcultarMenu"] is not true)
+                {
+                    <a asp-controller="Cuenta" asp-action="IniciarSesion" class="btn btn-sm btn-outline-secondary">Iniciar sesión</a>
+                }
+            </header>
+            <main id="contenido-principal" class="page-content" tabindex="-1">
+                @RenderBody()
+            </main>
+            <footer class="app-footer">
+                <span>&copy; @DateTime.Now.Year Munitrans</span>
+                <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+            </footer>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

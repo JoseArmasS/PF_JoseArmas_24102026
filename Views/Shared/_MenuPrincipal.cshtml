@@ -1,0 +1,89 @@
+@{
+    var controladorActual = ViewContext.RouteData.Values["controller"]?.ToString();
+    var accionActual = ViewContext.RouteData.Values["action"]?.ToString();
+    var esInicio = string.Equals(controladorActual, "Home", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(accionActual, "Index", StringComparison.OrdinalIgnoreCase);
+    var grupos = new[]
+    {
+        (Titulo: "Administración", Opciones: new[]
+        {
+            (Controlador: "Municipalidades", Accion: "Index", Texto: "Municipalidades"),
+            (Controlador: "Lineas", Accion: "Index", Texto: "Líneas"),
+            (Controlador: "Estaciones", Accion: "Index", Texto: "Estaciones"),
+            (Controlador: "Recorridos", Accion: "Index", Texto: "Recorrido de estaciones")
+        }),
+        (Titulo: "Buses y pilotos", Opciones: new[]
+        {
+            (Controlador: "Buses", Accion: "Index", Texto: "Buses"),
+            (Controlador: "Pilotos", Accion: "Index", Texto: "Pilotos"),
+            (Controlador: "Asignaciones", Accion: "Index", Texto: "Asignación de buses a líneas"),
+            (Controlador: "ParqueosBase", Accion: "Index", Texto: "Asignación de buses a parqueos"),
+            (Controlador: "ConsultasAsignaciones", Accion: "Pilotos", Texto: "Consulta de pilotos y buses")
+        }),
+        (Titulo: "Operaciones", Opciones: new[]
+        {
+            (Controlador: "CiclosBuses", Accion: "Index", Texto: "Operación de buses"),
+            (Controlador: "OperacionBuses", Accion: "Index", Texto: "Consulta de operaciones por estación"),
+            (Controlador: "ConsultaBuses", Accion: "Index", Texto: "Buses en operación"),
+            (Controlador: "ParametrosOperacion", Accion: "Index", Texto: "Parámetros de operación")
+        }),
+        (Titulo: "Parqueos", Opciones: new[]
+        {
+            (Controlador: "Parqueos", Accion: "Index", Texto: "Parqueos"),
+            (Controlador: "ConsultasAsignaciones", Accion: "Parqueos", Texto: "Consulta de estaciones, parqueos y buses")
+        }),
+        (Titulo: "Seguridad", Opciones: new[]
+        {
+            (Controlador: "Usuarios", Accion: "Crear", Texto: "Crear usuario"),
+            (Controlador: "Roles", Accion: "Index", Texto: "Roles")
+        })
+    };
+}
+
+<aside class="app-sidebar">
+    <div class="sidebar-heading">
+        <a class="app-brand" asp-area="" asp-controller="Home" asp-action="Index">
+            <img class="brand-mark" src="~/images/logo.jpg" alt="" />
+            <span>TransMetro<small>Transporte Metropolitano</small></span>
+        </a>
+        <button class="btn menu-toggle d-lg-none" type="button" data-bs-toggle="collapse"
+                data-bs-target="#menu-principal" aria-controls="menu-principal" aria-expanded="false"
+                aria-label="Mostrar u ocultar el menú principal">
+            Menú
+        </button>
+    </div>
+    <nav id="menu-principal" class="collapse d-lg-block" aria-label="Menú principal">
+        <ul class="menu-list">
+            <li>
+                <a class="menu-link @(esInicio ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index"
+                   aria-current="@(esInicio ? "page" : null)">Inicio</a>
+            </li>
+            @foreach (var grupo in grupos)
+            {
+                <li class="menu-group">
+                    <h2 class="sidebar-label">@grupo.Titulo</h2>
+                    <ul class="menu-sublist" aria-label="@grupo.Titulo">
+                        @foreach (var opcion in grupo.Opciones)
+                        {
+                            var activo = string.Equals(controladorActual, opcion.Controlador, StringComparison.OrdinalIgnoreCase)
+                                && (opcion.Controlador != "ConsultasAsignaciones" || string.Equals(accionActual, opcion.Accion, StringComparison.OrdinalIgnoreCase));
+                            <li>
+                                <a class="menu-link @(activo ? "active" : "")" asp-area=""
+                                   asp-controller="@opcion.Controlador" asp-action="@opcion.Accion"
+                                   aria-current="@(activo ? "page" : null)">@opcion.Texto</a>
+                            </li>
+                        }
+                        @if (grupo.Titulo == "Seguridad")
+                        {
+                            <li>
+                                <span class="menu-link menu-link-disabled" aria-disabled="true">
+                                    Salir <small class="menu-pending">Pendiente</small>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+        </ul>
+    </nav>
+</aside>

@@ -1,0 +1,77 @@
+@model OperacionBusesViewModel
+<section class="module-card mb-4" aria-labelledby="titulo-operaciones-registradas">
+    <h2 id="titulo-operaciones-registradas">Buses@(Model.Ocupacion.Seleccionada is { } estacionSeleccionada ? $" en {estacionSeleccionada.Nombre}" : "")</h2>
+    <p>Capacidad máxima y ocupación de los buses presentes en la estación seleccionada.</p>
+    @if (Model.ErrorOperaciones)
+    {
+        <div class="alert alert-danger" role="alert">No se pudieron consultar las operaciones. Intenta nuevamente.</div>
+    }
+    else if (Model.Ocupacion.Seleccionada is null)
+    {
+        <p role="status">Selecciona una estación para consultar sus buses en operación.</p>
+    }
+    else if (Model.Operaciones.Count == 0)
+    {
+        <p role="status">No hay buses en operación en esta estación.</p>
+    }
+    else
+    {
+        <p class="form-text">Ciclos activos con llegada registrada y sin salida de esta estación. Los buses en camino aparecerán al registrar su llegada.</p>
+        <p id="ayuda-tabla-buses" class="form-text">Desplázate dentro de la tabla para consultar todos los buses y sus acciones.</p>
+        <div class="table-responsive bus-operations-scroll" role="region" aria-labelledby="titulo-operaciones-registradas"
+             aria-describedby="ayuda-tabla-buses" tabindex="0">
+            <table class="table table-striped table-hover align-top bus-operations-table mb-0">
+                <caption>@Model.Operaciones.Count operaciones de buses.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Bus y operación</th>
+                        <th scope="col">Recorrido</th>
+                        <th scope="col">Capacidad máxima</th>
+                        <th scope="col">Espera y salida</th>
+                        <th scope="col">Última ocupación</th>
+                        <th scope="col">Historial</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var operacion in Model.Operaciones)
+                {
+                    <tr>
+                        <th scope="row">
+                            <span class="d-block">Bus @operacion.Bus</span>
+                            <span class="module-status d-inline-block mt-2">Operación @operacion.Codigo</span>
+                            <span class="d-block small fw-normal mt-2">Operador: @operacion.Operador</span>
+                        </th>
+                        <td>
+                            <strong class="d-block">@operacion.Linea</strong>
+                            <span class="d-block small mt-2">Estación de salida: @operacion.EstacionSalida</span>
+                        </td>
+                        <td>@operacion.Capacidad pasajeros</td>
+                        <td>
+                            <span class="d-block small">Inicio de espera del ciclo</span>
+                            <span class="d-block text-nowrap">@operacion.InicioEspera.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                            <span class="d-block small mt-2">Salida inicial</span>
+                            <span class="d-block">@(operacion.Salida?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Sin salida registrada")</span>
+                        </td>
+                        <td>
+                    @if (operacion.UltimosPasajeros.HasValue && operacion.Capacidad > 0)
+                    {
+                        <p class="mb-1"><strong>@operacion.UltimosPasajeros pasajeros · @((operacion.UltimosPasajeros.Value * 100m / operacion.Capacidad).ToString("0.##")) % de ocupación</strong></p>
+                        <div class="form-text mb-0">Última medición: @operacion.UltimaEstacion
+                            <partial name="_TiempoMedicion" model="@(new TiempoMedicionViewModel(operacion.UltimaMedicion, Model.HoraReferencia))" />
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="form-text mb-0">Sin mediciones de ocupación.</p>
+                    }
+                        </td>
+                        <td>
+                    <a asp-controller="OcupacionBuses" asp-action="Index" asp-route-operacion="@operacion.Codigo" asp-route-soloConsulta="true" class="btn btn-outline-secondary">Ver historial</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

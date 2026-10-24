@@ -1,0 +1,174 @@
+@model CiclosBusesViewModel
+@using TransMetroUMG.Domain
+@{
+    ViewData["Title"] = "Operación de buses";
+    var origen = Model.Recorrido.ToList().FindIndex(x => x.Codigo == Model.Estacion);
+}
+<div class="page-heading d-flex flex-wrap justify-content-between gap-3 align-items-start">
+    <div><p class="eyebrow">Operaciones / Ciclos completos</p><h1>Operación de buses</h1><p>Tu estación, los buses y la siguiente acción.</p></div>
+    <a asp-controller="OperacionBuses" asp-action="Index" class="btn btn-outline-secondary">Consultar historial</a>
+</div>
+@if (Model.HoraReferencia is { } referencia)
+{
+    <p class="small text-secondary">Tiempos calculados al consultar: @referencia.ToString("dd/MM/yyyy HH:mm:ss").</p>
+}
+@if (TempData["CicloMensaje"] is string mensaje) { <div class="alert alert-success" role="status">@mensaje</div> }
+@if (TempData["CicloError"] is string error) { <div class="alert alert-warning" role="alert">@error</div> }
+<div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+@if (Model.UltimaEstacion is { } medicionEstacion)
+{
+    <partial name="_AlertaCapacidadEstacion" model="medicionEstacion" />
+}
+
+<section class="module-card mb-4" aria-labelledby="preparar-titulo">
+    <h2 id="preparar-titulo">Preparar salida</h2>
+    <form asp-action="Index" method="get" class="user-form">
+        <input type="hidden" name="asignacion" value="@Model.Asignacion" />
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="estacion-trabajo" class="form-label">1. Estación de trabajo</label>
+                <select id="estacion-trabajo" name="estacion" class="form-select" required>
+                    <option value="">Selecciona una estación</option>
+                    @foreach (var estacion in Model.Estaciones)
+                    {
+                        <option value="@estacion.Codigo" selected="@(estacion.Codigo == Model.Estacion)">@estacion.Nombre · @estacion.Municipalidad</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="linea-trabajo" class="form-label">2. Línea</label>
+                <select id="linea-trabajo" name="linea" class="form-select">
+                    <option value="">Selecciona una línea</option>
+                    @foreach (var linea in Model.Lineas)
+                    {
+                        <option value="@linea.Codigo" selected="@(linea.Codigo == Model.Linea)">@linea.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3"><button type="submit" class="btn btn-outline-secondary w-100">Consultar</button></div>
+        </div>
+        <p class="form-text mt-2 mb-0">Selecciona la estación y consulta para cargar sus líneas y buses.</p>
+    </form>
+    @if (!Model.ErrorCarga && Model.Estacion.HasValue && Model.Linea.HasValue)
+    {
+        @if (Model.Asignaciones.Count == 0)
+        {
+            <p class="mt-3" role="status">No hay buses asignados a esta línea. <a asp-controller="Asignaciones" asp-action="Index">Registrar asignación</a>.</p>
+        }
+        else if (Model.Recorrido.Count < 2 || origen < 0)
+        {
+            <p class="mt-3" role="status">La línea necesita al menos dos estaciones y debe incluir la estación de inicio.</p>
+        }
+        else
+        {
+            <form asp-action="Iniciar" method="post" class="user-form mt-3 pt-3 border-top">
+                <input type="hidden" name="Estacion" value="@Model.Estacion" /><input type="hidden" name="Linea" value="@Model.Linea" />
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-7">
+                        <label for="asignacion-ciclo" class="form-label">3. Bus y piloto</label>
+                        <select id="asignacion-ciclo" name="Asignacion" class="form-select" required>
+                            <option value="">Selecciona un bus y su asignación</option>
+                            @foreach (var asignacion in Model.Asignaciones)
+                            {
+                                <option value="@asignacion.Codigo" selected="@(asignacion.Codigo == Model.Asignacion)">@asignacion.NumeroBus · @asignacion.Placa · @asignacion.Piloto · @asignacion.Fecha.ToString("dd/MM/yyyy") · #@asignacion.Codigo · @asignacion.Capacidad pasajeros</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="sentido-ciclo" class="form-label">Sentido inicial</label>
+                        <select id="sentido-ciclo" name="Sentido" class="form-select" required>
+                            @if (origen > 0 && origen < Model.Recorrido.Count - 1) { <option value="">Selecciona el sentido</option> }
+                            @if (origen < Model.Recorrido.Count - 1) { <option value="1">Hacia @Model.Recorrido.Last().Nombre</option> }
+                            @if (origen > 0) { <option value="-1">Hacia @Model.Recorrido.First().Nombre</option> }
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                    <button type="submit" class="btn btn-primary">Iniciar operación</button>
+                    <span class="small text-secondary">Inicia la espera. El ciclo termina al regresar al origen tras recorrer ambos sentidos.</span>
+                </div>
+            </form>
+        }
+    }
+</section>
+
+<div class="operation-readings">
+    <div class="operation-readings-column">
+        <section class="module-card mb-4" aria-labelledby="estacion-titulo">
+            <p class="eyebrow">Estación de trabajo</p>
+            <h2 id="estacion-titulo">@(Model.EstacionSeleccionada?.Nombre ?? "Selecciona una estación")</h2>
+            @if (Model.EstacionSeleccionada is { } estacion)
+            {
+                <p>@estacion.Municipalidad · Capacidad: @(estacion.Capacidad?.ToString() ?? "Sin configurar")</p>
+                @if (Model.UltimaEstacion is { } ultima)
+                {
+                    <div class="cycle-station-count"><strong>@ultima.Pasajeros</strong><span>pasajeros esperando · @ultima.Porcentaje.ToString("0.##") %</span></div>
+                    <div class="small text-secondary mb-3">
+                        <partial name="_TiempoMedicion" model="@(new TiempoMedicionViewModel(ultima.Fecha, Model.HoraReferencia))" />
+                        <span>Capacidad máxima: @ultima.Capacidad</span>
+                    </div>
+                    @if (ultima.RequiereApoyo)
+                    {
+                        <a href="#alerta-capacidad-estacion" class="text-danger fw-semibold small">Apoyo requerido: se alcanzó el umbral de capacidad.</a>
+                    }
+                }
+                else { <p role="status">Sin mediciones de ocupación.</p> }
+                @if (estacion.Capacidad is null or <= 0)
+                {
+                    <div class="alert alert-info" role="status">Configura la capacidad de la estación para registrar su ocupación.
+                        <a asp-controller="Estaciones" asp-action="Index" asp-route-id="@estacion.Codigo">Configurar capacidad</a>
+                    </div>
+                }
+                @if (estacion.Capacidad is > 0 && !Model.ErrorCarga)
+                {
+                    <form asp-action="MedirEstacion" method="post" class="user-form mt-3">
+                        <input type="hidden" name="CodEstacion" value="@estacion.Codigo" />
+                        <label for="pasajeros-estacion" class="form-label">Pasajeros esperando en la estación</label>
+                        <div class="input-group"><input id="pasajeros-estacion" name="Pasajeros" type="number" min="0" step="1" required class="form-control" /><button type="submit" class="btn btn-outline-secondary">Guardar</button></div>
+                    </form>
+                }
+                <a asp-controller="OperacionBuses" asp-action="Index" asp-route-estacion="@estacion.Codigo" class="d-inline-block small mt-3">Ver historial de la estación</a>
+            }
+        </section>
+    </div>
+    <div class="operation-readings-column">
+        <section class="module-card mb-4" aria-labelledby="buses-titulo">
+            <div class="d-flex justify-content-between gap-2"><h2 id="buses-titulo">Buses</h2><span class="module-status">@Model.Ciclos.Count por atender</span></div>
+            <p>En esta estación o en camino hacia ella. Selecciona uno para atenderlo.</p>
+            <div data-esperas-url="@Url.Action("Esperas", new { estacion = Model.Estacion })" hidden></div>
+            @if (Model.ErrorCarga) { <p role="alert">No se pudieron consultar las operaciones. <a asp-action="Index" asp-route-estacion="@Model.Estacion" asp-route-linea="@Model.Linea">Reintentar</a>.</p> }
+            else
+            {
+                <div class="table-responsive cycle-table-scroll" role="region" aria-labelledby="buses-titulo" tabindex="0">
+                    <table class="table table-hover align-middle mb-0">
+                        <caption>Ciclos activos de la estación seleccionada, en todas las líneas.</caption>
+                        <thead><tr><th scope="col">Bus / línea</th><th scope="col">Situación</th><th scope="col">Destino</th><th scope="col">Acción</th></tr></thead>
+                        <tbody>
+                            @if (Model.Ciclos.Count == 0) { <tr><td colspan="4" class="text-secondary py-4">No hay buses por atender en esta estación.</td></tr> }
+                            @foreach (var ciclo in Model.Ciclos)
+                            {
+                                <tr class="@(ciclo.Operacion.CodOperacionBus == Model.Seleccionado?.Operacion.CodOperacionBus ? "table-active" : null)">
+                                    <th scope="row">@ciclo.Bus<span class="d-block small fw-normal">@ciclo.Linea · #@ciclo.Operacion.CodOperacionBus</span></th>
+                                    <td>@ciclo.Situacion
+                                        @if (ciclo.Actual is { } actual && Model.Esperas.TryGetValue(actual.Datos.CodOperacionBusParada, out var espera))
+                                        {
+                                            <div data-visita-espera="@actual.Datos.CodOperacionBusParada"><partial name="_EsperaBus" model="espera" /></div>
+                                        }
+                                    </td><td>@(ciclo.Siguiente?.Estacion ?? "Fin en origen")</td>
+                                    <td><a asp-action="Index" asp-route-estacion="@Model.Estacion" asp-route-linea="@Model.Linea" asp-route-operacion="@ciclo.Operacion.CodOperacionBus" asp-fragment="atencion-bus" class="btn btn-sm btn-outline-secondary">Atender</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            @if (Model.Seleccionado is { } seleccionado && !Model.ErrorCarga)
+            {
+                <partial name="_AtencionCiclo" model="Model" />
+            }
+        </section>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/ciclos-buses.js" asp-append-version="true"></script>
+}

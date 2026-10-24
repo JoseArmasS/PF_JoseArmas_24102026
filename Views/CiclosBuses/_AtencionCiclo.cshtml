@@ -1,0 +1,65 @@
+@model CiclosBusesViewModel
+@using TransMetroUMG.Domain
+@{
+    var ciclo = Model.Seleccionado!;
+    var visita = ciclo.VisitaAtencion;
+    var puedeAtender = visita is not null && visita.Datos.CodEstacion == Model.Estacion && !ciclo.Operacion.FechaHoraCierre.HasValue;
+    var accion = ciclo.EnTrayecto ? AccionCiclo.Llegada : ciclo.Siguiente is null ? AccionCiclo.Cierre : AccionCiclo.Salida;
+}
+<section id="atencion-bus" class="cycle-attention mt-3" aria-labelledby="atencion-titulo">
+    <div class="d-flex flex-wrap justify-content-between gap-2"><h3 id="atencion-titulo" class="h6 mb-0">Bus @ciclo.Bus</h3><span class="module-status">@ciclo.Situacion</span></div>
+    <p class="small mt-2">@ciclo.Linea · @ciclo.Piloto · Ciclo #@ciclo.Operacion.CodOperacionBus</p>
+    <p class="small">@(ciclo.EnTrayecto ? $"{ciclo.Actual?.Estacion} → {ciclo.Siguiente?.Estacion}" : ciclo.Actual?.Estacion) · @ciclo.Actual?.Datos.Secuencia de @(ciclo.Paradas.Count - 1) tramos completados.</p>
+    @if (ciclo.Actual?.Datos.FechaHoraLlegada is { } llegada && !ciclo.EnTrayecto && !ciclo.Operacion.FechaHoraCierre.HasValue)
+    { <p class="small text-secondary">En espera desde @llegada.ToString("dd/MM/yyyy HH:mm:ss").</p> }
+    @if (puedeAtender)
+    {
+        @if (accion == AccionCiclo.Salida && Model.Esperas.TryGetValue(visita!.Datos.CodOperacionBusParada, out var espera))
+        {
+            <div class="alert alert-info" data-visita-espera="@visita.Datos.CodOperacionBusParada"><partial name="_EsperaBus" model="espera" /></div>
+        }
+        @if (!ciclo.EnTrayecto)
+        {
+            <form asp-action="Medir" method="post" class="user-form mb-3">
+                <input type="hidden" name="Operacion" value="@ciclo.Operacion.CodOperacionBus" /><input type="hidden" name="Visita" value="@visita!.Datos.CodOperacionBusParada" /><input type="hidden" name="Estacion" value="@Model.Estacion" />
+                <label for="pasajeros-bus" class="form-label">Pasajeros dentro del bus</label>
+                <div class="input-group"><input id="pasajeros-bus" name="Pasajeros" class="form-control" type="number" min="0" step="1" required /><button type="submit" class="btn btn-outline-secondary">Guardar ocupación</button></div>
+                <p class="form-text mb-0">Capacidad máxima: @ciclo.Operacion.CapacidadRegistrada. Si se supera, solicita más buses; la medición será rechazada.</p>
+            </form>
+        }
+        <form asp-action="Confirmar" method="post" data-confirmar-ciclo>
+            <input type="hidden" name="Operacion" value="@ciclo.Operacion.CodOperacionBus" /><input type="hidden" name="Visita" value="@visita!.Datos.CodOperacionBusParada" /><input type="hidden" name="Estacion" value="@Model.Estacion" /><input type="hidden" name="accion" value="@accion" />
+            <button type="submit" class="btn btn-primary w-100">@(accion switch { AccionCiclo.Llegada => $"Registrar llegada a {visita.Estacion}", AccionCiclo.Salida => $"Confirmar salida hacia {ciclo.Siguiente!.Estacion}", _ => "Confirmar cierre del ciclo" })</button>
+        </form>
+        <p class="small text-secondary mt-2">Confirmación manual del movimiento real del bus.</p>
+    }
+    else if (!ciclo.Operacion.FechaHoraCierre.HasValue && visita is not null)
+    {
+        <p class="small">La siguiente acción corresponde a @visita.Estacion.</p>
+        <a asp-action="Index" asp-route-estacion="@visita.Datos.CodEstacion" asp-route-operacion="@ciclo.Operacion.CodOperacionBus" class="btn btn-outline-secondary">Cambiar estación de trabajo</a>
+    }
+    else if (ciclo.Operacion.FechaHoraCierre is { } cierre)
+    { <p role="status" class="small">Ciclo cerrado el @cierre.ToString("dd/MM/yyyy HH:mm:ss"). Puedes preparar una nueva operación.</p> }
+    @if (Model.Mediciones.FirstOrDefault() is { } ultima)
+    {
+        <div class="small mt-3">Última medición del ciclo: <strong>@ultima.Pasajeros pasajeros · @((ultima.Pasajeros * 100m / ciclo.Operacion.CapacidadRegistrada).ToString("0.##")) %</strong>
+            <span class="d-block text-secondary">@ultima.Estacion</span>
+            <partial name="_TiempoMedicion" model="@(new TiempoMedicionViewModel(ultima.Fecha, Model.HoraReferencia))" />
+        </div>
+    }
+    <details class="mt-3">
+        <summary>Ver recorrido y movimientos</summary>
+        <ol class="small mt-2 ps-3">
+            @foreach (var parada in ciclo.Paradas)
+            {
+                <li class="mb-2">
+                    <strong>@parada.Estacion</strong>
+                    @if (parada.Datos.FechaHoraLlegada is { } horaLlegada) { <span class="d-block">@(parada.Datos.Secuencia == 0 ? "Inicio" : "Llegada"): @horaLlegada.ToString("dd/MM HH:mm:ss") · @parada.OperadorLlegada</span> }
+                    else { <span class="d-block text-secondary">Pendiente</span> }
+                    @if (parada.Datos.FechaHoraSalida is { } horaSalida) { <span class="d-block">Salida: @horaSalida.ToString("dd/MM HH:mm:ss") · @parada.OperadorSalida</span> }
+                </li>
+            }
+        </ol>
+    </details>
+    <a asp-controller="OcupacionBuses" asp-action="Index" asp-route-operacion="@ciclo.Operacion.CodOperacionBus" class="d-inline-block small mt-3">Ver historial completo de ocupación</a>
+</section>

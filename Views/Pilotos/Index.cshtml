@@ -1,0 +1,161 @@
+@model PilotosViewModel
+@using TransMetroUMG.Domain
+@{
+    ViewData["Title"] = "Pilotos";
+    var editando = Model.Formulario.CodPiloto > 0;
+    var municipalidades = Model.Municipalidades.ToDictionary(x => x.Codigo, x => x.Nombre);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Buses y pilotos / Pilotos</p>
+    <h1>Pilotos</h1>
+    <p>Registra pilotos y administra sus datos de contacto, formación y licencias.</p>
+</div>
+
+@if (TempData["PilotoGuardado"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">@(editando ? "Editar piloto" : "Ingresar piloto")</h2>
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="Formulario.CodPiloto" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="Formulario.CodMunicipalidad" class="form-label">Municipalidad *</label>
+                <select asp-for="Formulario.CodMunicipalidad" class="form-select">
+                    <option value="">Selecciona una municipalidad</option>
+                    @foreach (var municipalidad in Model.Municipalidades)
+                    {
+                        <option value="@municipalidad.Codigo">@municipalidad.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodMunicipalidad" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.Estado" class="form-label">Estado *</label>
+                <select asp-for="Formulario.Estado" asp-items="Html.GetEnumSelectList<EstadoPiloto>()" class="form-select">
+                    <option value="">Selecciona un estado</option>
+                </select>
+                <span asp-validation-for="Formulario.Estado" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.NombresPiloto" class="form-label">Nombres *</label>
+                <input asp-for="Formulario.NombresPiloto" class="form-control" maxlength="100" />
+                <span asp-validation-for="Formulario.NombresPiloto" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.ApellidosPiloto" class="form-label">Apellidos *</label>
+                <input asp-for="Formulario.ApellidosPiloto" class="form-control" maxlength="100" />
+                <span asp-validation-for="Formulario.ApellidosPiloto" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.TelefonoPiloto" class="form-label">Teléfono</label>
+                <input asp-for="Formulario.TelefonoPiloto" class="form-control" type="tel" autocomplete="tel" maxlength="25" aria-describedby="ayuda-telefono" />
+                <span asp-validation-for="Formulario.TelefonoPiloto" class="text-danger"></span>
+                <div id="ayuda-telefono" class="form-text">Opcional. Puedes incluir el prefijo del país, por ejemplo +502.</div>
+            </div>
+            <div class="col-12">
+                <label asp-for="Formulario.HistorialEducativo" class="form-label">Historial educativo</label>
+                <textarea asp-for="Formulario.HistorialEducativo" class="form-control" rows="4" maxlength="2000" aria-describedby="ayuda-educacion"></textarea>
+                <span asp-validation-for="Formulario.HistorialEducativo" class="text-danger"></span>
+                <div id="ayuda-educacion" class="form-text">Opcional. Describe estudios, instituciones y formación. Máximo 2000 caracteres.</div>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.NumeroLicencia" class="form-label">Número de licencia *</label>
+                <input asp-for="Formulario.NumeroLicencia" class="form-control" maxlength="50" />
+                <span asp-validation-for="Formulario.NumeroLicencia" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.TipoLicencia" class="form-label">Tipo de licencia *</label>
+                <input asp-for="Formulario.TipoLicencia" class="form-control" maxlength="20" />
+                <span asp-validation-for="Formulario.TipoLicencia" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.FechaVencimientoLicencia" class="form-label">Vencimiento de licencia *</label>
+                <input asp-for="Formulario.FechaVencimientoLicencia" class="form-control" />
+                <span asp-validation-for="Formulario.FechaVencimientoLicencia" class="text-danger"></span>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">@(editando ? "Guardar cambios" : "Registrar piloto")</button>
+            @if (editando)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar edición</a>
+            }
+            <a asp-controller="Home" asp-action="Index" asp-fragment="transporte" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Pilotos registrados</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">
+            No se pudo consultar el listado. <a asp-action="Index">Reintentar</a>
+        </div>
+    }
+    else if (Model.Registros.Count == 0)
+    {
+        <p role="status">No hay pilotos registrados. Ingresa el primero en el formulario.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Registros.Count pilotos registrados.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Código</th>
+                        <th scope="col">Municipalidad</th>
+                        <th scope="col">Nombres</th>
+                        <th scope="col">Apellidos</th>
+                        <th scope="col">Teléfono</th>
+                        <th scope="col">Historial educativo</th>
+                        <th scope="col">Número de licencia</th>
+                        <th scope="col">Tipo de licencia</th>
+                        <th scope="col">Vencimiento</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var piloto in Model.Registros)
+                    {
+                        <tr>
+                            <td>@piloto.CodPiloto</td>
+                            <td>@municipalidades.GetValueOrDefault(piloto.CodMunicipalidad, piloto.CodMunicipalidad.ToString())</td>
+                            <td>@piloto.NombresPiloto</td>
+                            <td>@piloto.ApellidosPiloto</td>
+                            <td class="text-nowrap">@(piloto.TelefonoPiloto ?? "Sin registrar")</td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(piloto.HistorialEducativo))
+                                {
+                                    <span>Sin registrar</span>
+                                }
+                                else
+                                {
+                                    <details><summary>Ver formación</summary><p class="mt-2 mb-0 piloto-educacion">@piloto.HistorialEducativo</p></details>
+                                }
+                            </td>
+                            <td>@piloto.NumeroLicencia</td>
+                            <td>@piloto.TipoLicencia</td>
+                            <td>@piloto.FechaVencimientoLicencia.ToString("dd/MM/yyyy")</td>
+                            <td>@piloto.Estado</td>
+                            <td><a asp-action="Index" asp-route-id="@piloto.CodPiloto"
+                                   class="btn btn-sm btn-outline-secondary" aria-label="Editar piloto @piloto.NombresPiloto @piloto.ApellidosPiloto">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

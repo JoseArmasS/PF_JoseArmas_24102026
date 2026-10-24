@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.vs/
+tests/.artifacts/
+*.user
+appsettings.*.local.json
+Properties/PublishProfiles/
+.env
+.env.*
+*.log

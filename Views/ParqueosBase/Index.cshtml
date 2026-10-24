@@ -1,0 +1,107 @@
+@model ParqueosBaseViewModel
+@{
+    ViewData["Title"] = "Asignación de buses a parqueos";
+    var parqueos = Model.Parqueos.ToDictionary(x => x.Codigo, x => x.Nombre);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Buses y pilotos / Asignación de buses a parqueos</p>
+    <h1>Asignación de buses a parqueos</h1>
+    <p>Establece o cambia el parqueo base de cada bus.</p>
+</div>
+
+@if (TempData["ParqueoBaseGuardado"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">Asignar parqueo base</h2>
+    <p>El parqueo base identifica dónde está asignado el bus. El control de entradas y salidas es una operación independiente.</p>
+    @if (!Model.ErrorCarga && (Model.Buses.Count == 0 || Model.Parqueos.Count == 0))
+    {
+        <div class="alert alert-info" role="status">
+            Para asignar un parqueo base necesitas al menos un bus y un parqueo registrados.
+            <a asp-controller="Buses" asp-action="Index">Buses</a> ·
+            <a asp-controller="Parqueos" asp-action="Index">Parqueos</a>
+        </div>
+    }
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Formulario.CodBus" class="form-label">Bus *</label>
+                <select asp-for="Formulario.CodBus" class="form-select">
+                    <option value="">Selecciona un bus</option>
+                    @foreach (var bus in Model.Buses)
+                    {
+                        <option value="@bus.CodBus">@bus.NumeroBus — @bus.NumeroPlaca</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodBus" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CodParqueoBase" class="form-label">Parqueo base *</label>
+                <select asp-for="Formulario.CodParqueoBase" class="form-select">
+                    <option value="">Selecciona un parqueo</option>
+                    @foreach (var parqueo in Model.Parqueos)
+                    {
+                        <option value="@parqueo.Codigo">@parqueo.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodParqueoBase" class="text-danger"></span>
+                <div class="form-text">Parqueo — estación — municipalidad.</div>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios. Guardar reemplaza el parqueo base actual del bus seleccionado.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary" disabled="@(Model.ErrorCarga || Model.Buses.Count == 0 || Model.Parqueos.Count == 0)">Guardar parqueo base</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Limpiar selección</a>
+            <a asp-controller="Home" asp-action="Index" asp-fragment="transporte" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Parqueo base de los buses</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">No se pudo consultar el listado. <a asp-action="Index">Reintentar</a></div>
+    }
+    else if (Model.Buses.Count == 0)
+    {
+        <p role="status">No hay buses registrados.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Buses.Count buses registrados.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Bus</th>
+                        <th scope="col">Placa</th>
+                        <th scope="col">Parqueo base — estación — municipalidad</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bus in Model.Buses)
+                    {
+                        <tr>
+                            <td>@bus.NumeroBus</td>
+                            <td>@bus.NumeroPlaca</td>
+                            <td>@(bus.CodParqueoBase.HasValue ? parqueos.GetValueOrDefault(bus.CodParqueoBase.Value, bus.CodParqueoBase.Value.ToString()) : "Sin asignar")</td>
+                            <td><a asp-action="Index" asp-route-id="@bus.CodBus" class="btn btn-sm btn-outline-secondary"
+                                   aria-label="Asignar o cambiar parqueo base del bus @bus.NumeroBus">@(bus.CodParqueoBase.HasValue ? "Cambiar parqueo" : "Asignar parqueo")</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

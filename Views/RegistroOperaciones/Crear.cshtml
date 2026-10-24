@@ -1,0 +1,57 @@
+@model InicioOperacionBusViewModel
+@{ ViewData["Title"] = "Iniciar operación de bus"; }
+<div class="page-heading">
+    <p class="eyebrow">Operaciones / Operación de buses</p>
+    <h1>Iniciar operación de bus</h1>
+    <p>Selecciona la estación donde comienza el viaje de la línea asignada.</p>
+</div>
+<section class="module-card mb-4" aria-labelledby="titulo-inicio">
+    <h2 id="titulo-inicio">Datos de la operación</h2>
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    @if (!Model.ErrorCarga && Model.DatosAsignacion is { } datos)
+    {
+        <dl class="row">
+            <dt class="col-md-3">Bus / placa</dt><dd class="col-md-9">@datos.NumeroBus / @datos.Placa</dd>
+            <dt class="col-md-3">Piloto</dt><dd class="col-md-9">@datos.Piloto</dd>
+            <dt class="col-md-3">Línea</dt><dd class="col-md-9">@datos.Linea</dd>
+            <dt class="col-md-3">Fecha de asignación</dt><dd class="col-md-9">@datos.Fecha.ToString("dd/MM/yyyy")</dd>
+            <dt class="col-md-3">Capacidad del bus</dt><dd class="col-md-9">@datos.Capacidad pasajeros</dd>
+            <dt class="col-md-3">Operador</dt><dd class="col-md-9">@User.Identity?.Name</dd>
+        </dl>
+        @if (Model.Recorrido.Count == 0)
+        {
+            <div class="alert alert-info" role="status">La línea no tiene estaciones configuradas.
+                <a asp-controller="Recorridos" asp-action="Index">Configurar recorrido</a>
+            </div>
+        }
+        else
+        {
+            <form asp-action="Crear" method="post" class="user-form">
+                <input asp-for="Asignacion" type="hidden" />
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label asp-for="EstacionSalida" class="form-label"></label>
+                        <select asp-for="EstacionSalida" class="form-select">
+                            <option value="">Selecciona una estación</option>
+                            @foreach (var estacion in Model.Recorrido)
+                            {
+                                <option value="@estacion.Codigo">@estacion.Orden. @estacion.Nombre</option>
+                            }
+                        </select>
+                        <span asp-validation-for="EstacionSalida" class="text-danger"></span>
+                    </div>
+                </div>
+                <p class="form-text mt-3">Al iniciar se registra la hora actual como inicio de espera en la estación de salida. La capacidad se obtiene del bus. Esta acción no confirma su salida.</p>
+                <div class="d-flex flex-wrap gap-3 mt-3">
+                    <button type="submit" class="btn btn-primary">Iniciar operación</button>
+                    <a asp-controller="OperacionBuses" asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        }
+    }
+    else
+    {
+        <a asp-controller="OperacionBuses" asp-action="Index" class="btn btn-outline-secondary">Volver a operación de buses</a>
+    }
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

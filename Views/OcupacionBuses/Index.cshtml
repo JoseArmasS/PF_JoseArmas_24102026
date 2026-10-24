@@ -1,0 +1,105 @@
+@model OcupacionBusViewModel
+@{ ViewData["Title"] = "Ocupación del bus"; }
+<div class="page-heading">
+    <p class="eyebrow">Operaciones / Operación de buses / Ocupación</p>
+    <h1>Ocupación del bus</h1>
+    <p>@(Model.SoloConsulta ? "Consulta las mediciones de pasajeros registradas en cada estación." : "Registra los pasajeros que se encuentran dentro del bus en cada estación.")</p>
+</div>
+@if (TempData["MedicionBusGuardada"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+<div asp-validation-summary="All" class="text-danger" role="alert"></div>
+@if (Model.SolicitarMasBuses)
+{
+    <div class="alert alert-warning" role="alert"><strong>Se requieren más buses.</strong> El conteo supera la capacidad del bus. La medición no se guardó. Solicita apoyo para atender a los pasajeros.</div>
+}
+@if (Model.ErrorCarga)
+{
+    <div class="alert alert-danger" role="alert">No se pudieron consultar los datos. Intenta nuevamente.</div>
+}
+else if (Model.Datos is { } datos)
+{
+    <section class="module-card mb-4" aria-labelledby="titulo-medicion-bus">
+        <h2 id="titulo-medicion-bus">Bus @datos.Bus · Operación @datos.Codigo</h2>
+        <p>Línea @datos.Linea · Salida desde @datos.EstacionSalida · Capacidad máxima: @datos.Capacidad pasajeros.</p>
+        @if (Model.Ultima is { } ultima)
+        {
+            var porcentaje = ultima.Pasajeros * 100m / datos.Capacidad;
+            <div class="alert alert-info" role="status">
+                Última medición: <strong>@ultima.Pasajeros pasajeros · @porcentaje.ToString("0.##") %</strong>.
+                @ultima.Estacion · @ultima.Fecha.ToString("dd/MM/yyyy HH:mm:ss").
+            </div>
+        }
+        @if (Model.SoloConsulta)
+        {
+            <p class="small text-secondary">Historial en modo consulta. La captura de ocupación se realiza en Operación de buses.</p>
+        }
+        else if (datos.SentidoInicial.HasValue)
+        {
+            <p>Las mediciones de este ciclo se registran desde su visita actual.</p>
+            <a asp-controller="CiclosBuses" asp-action="Index" asp-route-operacion="@datos.Codigo" asp-route-estacion="@Model.Estacion" class="btn btn-primary">Atender ciclo</a>
+        }
+        else if (Model.Recorrido.Count == 0)
+        {
+            <p role="status">Configura el recorrido de la línea antes de registrar mediciones.</p>
+        }
+        else
+        {
+            <form asp-action="Registrar" method="post" class="user-form">
+                <input asp-for="Operacion" type="hidden" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Estacion" class="form-label"></label>
+                        <select asp-for="Estacion" class="form-select">
+                            <option value="">Selecciona una estación</option>
+                            @foreach (var estacion in Model.Recorrido)
+                            {
+                                <option value="@estacion.Codigo">@estacion.Orden. @estacion.Nombre</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Estacion" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Pasajeros" class="form-label"></label>
+                        <input asp-for="Pasajeros" type="number" min="0" step="1" class="form-control" />
+                        <span asp-validation-for="Pasajeros" class="text-danger"></span>
+                    </div>
+                </div>
+                <p class="form-text mt-3">Operador: @User.Identity?.Name. Fecha y capacidad se obtienen automáticamente. No se permite superar @datos.Capacidad pasajeros. Esta medición no confirma la salida del bus.</p>
+                <button type="submit" class="btn btn-primary">Registrar ocupación</button>
+            </form>
+        }
+    </section>
+    <section class="module-card mb-4" aria-labelledby="titulo-historial-bus">
+        <h2 id="titulo-historial-bus">Historial de ocupación del bus</h2>
+        @if (Model.Historial.Count == 0)
+        {
+            <p role="status">No hay mediciones en esta página.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <caption>Página @Model.Pagina. Hasta 20 mediciones por página.</caption>
+                    <thead><tr><th scope="col">Fecha y hora</th><th scope="col">Estación</th><th scope="col">Pasajeros</th><th scope="col">Ocupación</th><th scope="col">Operador</th></tr></thead>
+                    <tbody>
+                        @foreach (var medicion in Model.Historial)
+                        {
+                            <tr><td>@medicion.Fecha.ToString("dd/MM/yyyy HH:mm:ss")</td><td>@medicion.Estacion</td><td>@medicion.Pasajeros</td><td>@((medicion.Pasajeros * 100m / datos.Capacidad).ToString("0.##")) %</td><td>@medicion.Operador</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <nav class="d-flex gap-3 mt-3" aria-label="Páginas de ocupación del bus">
+            @if (Model.Pagina > 1) { <a asp-action="Index" asp-route-operacion="@Model.Operacion" asp-route-pagina="@(Model.Pagina - 1)" asp-route-soloConsulta="@Model.SoloConsulta" class="btn btn-outline-secondary">Anterior</a> }
+            @if (Model.HaySiguiente) { <a asp-action="Index" asp-route-operacion="@Model.Operacion" asp-route-pagina="@(Model.Pagina + 1)" asp-route-soloConsulta="@Model.SoloConsulta" class="btn btn-outline-secondary">Siguiente</a> }
+        </nav>
+    </section>
+}
+<a asp-controller="OperacionBuses" asp-action="Index" class="btn btn-outline-secondary">Volver a operación de buses</a>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/ocupacion-buses.js" asp-append-version="true"></script>
+}

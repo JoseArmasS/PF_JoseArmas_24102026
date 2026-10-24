@@ -1,0 +1,26 @@
+@model OperacionBusesViewModel
+@using TransMetroUMG.Domain
+@{
+    ViewData["Title"] = "Consulta de operaciones por estación";
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Operaciones / Consulta de operaciones por estación</p>
+    <h1>Consulta de operaciones por estación</h1>
+    <a asp-controller="CiclosBuses" asp-action="Index" asp-route-estacion="@Model.Ocupacion.CodEstacion" class="btn btn-primary mb-3">Ir a operación por ciclos</a>
+    <p>Consulta operaciones de buses, ocupación de estaciones y sus historiales.</p>
+</div>
+
+@if (Model.HoraReferencia is { } referencia)
+{
+    <p class="small text-secondary">Tiempos calculados al consultar: @referencia.ToString("dd/MM/yyyy HH:mm:ss").</p>
+}
+
+@if (TempData["OperacionIniciada"] is string mensajeOperacion)
+{
+    <div class="alert alert-success" role="status">@mensajeOperacion</div>
+}
+
+<partial name="_OcupacionEstacion" model="Model" />
+<partial name="_OperacionesRegistradas" model="Model" />
+

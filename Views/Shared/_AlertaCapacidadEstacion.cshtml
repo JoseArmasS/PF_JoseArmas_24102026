@@ -1,0 +1,11 @@
+@model TransMetroUMG.Application.MedicionEstacionConsulta
+@using TransMetroUMG.Domain
+@if (Model.RequiereApoyo)
+{
+    <div id="alerta-capacidad-estacion" class="alert alert-danger" role="alert">
+        <strong class="d-block">Capacidad de estación: se requiere otro bus</strong>
+        <span>@Model.Pasajeros pasajeros esperando · capacidad máxima: @Model.Capacidad · ocupación: @Model.Porcentaje.ToString("0.##") %.</span>
+        <p class="mt-2 mb-1">La estimación alcanza o supera el @OcupacionEstacion.UmbralAlertaPorcentaje.ToString("0.##") %. Solicita apoyo y selecciona un bus para iniciar su operación cuando corresponda.</p>
+        <small>Medición del @Model.Fecha.ToString("dd/MM/yyyy HH:mm:ss"). La alerta se actualiza al registrar una nueva estimación.</small>
+    </div>
+}

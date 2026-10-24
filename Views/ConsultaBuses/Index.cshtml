@@ -1,0 +1,133 @@
+@model ConsultaBusesViewModel
+@using TransMetroUMG.Application
+@{
+    ViewData["Title"] = "Buses en operación";
+    var filtros = new Dictionary<string, string>();
+    if (Model.Municipalidad.HasValue) filtros["municipalidad"] = Model.Municipalidad.Value.ToString();
+    if (Model.Estacion.HasValue) filtros["estacion"] = Model.Estacion.Value.ToString();
+    if (Model.Linea.HasValue) filtros["linea"] = Model.Linea.Value.ToString();
+    if (Model.Bus.HasValue) filtros["bus"] = Model.Bus.Value.ToString();
+    if (Model.Piloto.HasValue) filtros["piloto"] = Model.Piloto.Value.ToString();
+    if (Model.Estado is not null) filtros["estado"] = Model.Estado;
+}
+<div class="page-heading">
+    <p class="eyebrow">Operaciones / Buses en operación</p>
+    <h1>Buses en operación</h1>
+    <p>Consulta ciclos abiertos, su última estación y la última ocupación registrada.</p>
+</div>
+
+<section class="module-card mb-4" aria-labelledby="titulo-filtros-buses">
+    <h2 id="titulo-filtros-buses">Filtrar consulta</h2>
+    <form asp-action="Index" method="get" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="Municipalidad" class="form-label">Municipalidad del bus</label>
+                <select asp-for="Municipalidad" class="form-select">
+                    <option value="">Todas las municipalidades</option>
+                    @foreach (var opcion in Model.Catalogos.Municipalidades) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Estacion" class="form-label">Estación (última registrada)</label>
+                <select asp-for="Estacion" class="form-select" aria-describedby="ayuda-estacion-buses">
+                    <option value="">Todas las estaciones</option>
+                    @foreach (var opcion in Model.Catalogos.Estaciones) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Linea" class="form-label">Línea</label>
+                <select asp-for="Linea" class="form-select">
+                    <option value="">Todas las líneas</option>
+                    @foreach (var opcion in Model.Catalogos.Lineas) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Bus" class="form-label">Bus</label>
+                <select asp-for="Bus" class="form-select">
+                    <option value="">Todos los buses</option>
+                    @foreach (var opcion in Model.Catalogos.Buses) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Piloto" class="form-label">Piloto</label>
+                <select asp-for="Piloto" class="form-select">
+                    <option value="">Todos los pilotos</option>
+                    @foreach (var opcion in Model.Catalogos.Pilotos) { <option value="@opcion.Codigo">@opcion.Nombre</option> }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Estado" class="form-label">Estado de operación</label>
+                <select asp-for="Estado" class="form-select">
+                    <option value="">Todos los estados</option>
+                    @foreach (var estado in EstadosConsultaBuses.Valores) { <option value="@estado">@estado</option> }
+                </select>
+            </div>
+        </div>
+        <p id="ayuda-estacion-buses" class="form-text mt-3">Los filtros se combinan. Para un bus en trayecto, la última estación registrada es aquella desde la que salió.</p>
+        <div class="d-flex flex-wrap gap-3">
+            <button type="submit" class="btn btn-primary">Consultar</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Limpiar filtros</a>
+            <a asp-controller="Home" asp-action="Index" asp-fragment="operaciones" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-resultados-buses">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
+        <h2 id="titulo-resultados-buses">Resultado de la consulta</h2>
+        @if (!Model.ErrorCarga && ViewData.ModelState.IsValid) { <span class="module-status">@Model.Resultado.Total ciclos abiertos</span> }
+    </div>
+    @if (Model.ErrorCarga)
+    {
+        <p role="alert">No se pudo cargar el resultado. <a asp-action="Index" asp-all-route-data="filtros">Reintentar</a>.</p>
+    }
+    else if (!ViewData.ModelState.IsValid)
+    {
+        <p role="status">Revisa los filtros para consultar los buses.</p>
+    }
+    else if (Model.Resultado.Total == 0)
+    {
+        <p role="status">No hay buses con ciclos abiertos que coincidan con los filtros seleccionados.</p>
+    }
+    else
+    {
+        <p class="small text-secondary">Una fila por ciclo abierto. La ocupación corresponde a la última estimación manual disponible.</p>
+        @if (Model.HoraReferencia is { } referencia) { <p class="small text-secondary">Consulta realizada el @referencia.ToString("dd/MM/yyyy HH:mm:ss").</p> }
+        <div class="table-responsive bus-operations-scroll" role="region" aria-labelledby="titulo-resultados-buses" tabindex="0">
+            <table class="table table-striped table-hover align-top active-buses-table mb-0">
+                <caption>@Model.Resultado.Total ciclos encontrados. Página @Model.Resultado.Pagina de @Model.Resultado.TotalPaginas. Hasta @ResultadoConsultaBuses.TamanoPagina filas por página.</caption>
+                <thead><tr>
+                    <th scope="col">Ciclo</th><th scope="col">Bus</th><th scope="col">Placa</th>
+                    <th scope="col">Línea</th><th scope="col">Piloto</th><th scope="col">Última estación registrada</th>
+                    <th scope="col">Estado de operación</th><th scope="col">Capacidad máxima</th>
+                    <th scope="col">Último conteo de pasajeros</th><th scope="col">Ocupación</th>
+                    <th scope="col">Última medición</th><th scope="col">Inicio del ciclo</th><th scope="col">Historial</th>
+                </tr></thead>
+                <tbody>
+                    @foreach (var fila in Model.Resultado.Filas)
+                    {
+                        <tr>
+                            <th scope="row">@fila.CodigoOperacion</th><td>@fila.Bus</td><td class="text-nowrap">@fila.Placa</td>
+                            <td>@fila.Linea</td><td>@fila.Piloto</td><td>@(fila.Estacion ?? "Sin estación registrada")</td>
+                            <td><span class="module-status">@fila.Estado</span></td><td>@fila.CapacidadMaxima</td>
+                            <td>@(fila.Pasajeros?.ToString() ?? "Sin medición")</td>
+                            <td class="text-nowrap">@(fila.Porcentaje.HasValue ? fila.Porcentaje.Value.ToString("0.00") + " %" : "Sin medición")</td>
+                            <td>
+                                <partial name="_TiempoMedicion" model="@(new TiempoMedicionViewModel(fila.UltimaMedicion, Model.HoraReferencia))" />
+                                @if (fila.EstacionMedicion is not null) { <span class="small text-secondary">En @fila.EstacionMedicion</span> }
+                            </td>
+                            <td>@fila.InicioOperacion.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                            <td><a asp-controller="OcupacionBuses" asp-action="Index" asp-route-operacion="@fila.CodigoOperacion" asp-route-soloConsulta="true" class="btn btn-sm btn-outline-secondary text-nowrap">Ver historial</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <nav class="d-flex flex-wrap align-items-center gap-3 mt-3" aria-label="Páginas de buses en operación">
+            @if (Model.Resultado.Pagina > 1) { <a asp-action="Index" asp-all-route-data="filtros" asp-route-pagina="@(Model.Resultado.Pagina - 1)" class="btn btn-outline-secondary">Anterior</a> }
+            <span class="small">Página @Model.Resultado.Pagina de @Model.Resultado.TotalPaginas</span>
+            @if (Model.Resultado.Pagina < Model.Resultado.TotalPaginas) { <a asp-action="Index" asp-all-route-data="filtros" asp-route-pagina="@(Model.Resultado.Pagina + 1)" class="btn btn-outline-secondary">Siguiente</a> }
+        </nav>
+    }
+</section>

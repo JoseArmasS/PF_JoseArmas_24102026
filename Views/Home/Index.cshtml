@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Menú principal";
+}
+
+<div class="page-heading">
+    <h1>Menú principal</h1>
+    <p>Administración del transporte municipal.</p>
+</div>
+<div class="module-grid">
+    <section id="administracion" class="module-card" aria-labelledby="titulo-administracion">
+        <h2 id="titulo-administracion">Administración</h2>
+        <p>Organización municipal y red de estaciones y líneas.</p>
+        <ul class="module-options">
+            <li><a asp-controller="Municipalidades" asp-action="Index">Municipalidades</a></li>
+            <li><a asp-controller="Lineas" asp-action="Index">Líneas</a></li>
+            <li><a asp-controller="Estaciones" asp-action="Index">Estaciones</a></li>
+            <li><a asp-controller="Recorridos" asp-action="Index">Recorrido de estaciones</a></li>
+        </ul>
+    </section>
+
+    <section id="transporte" class="module-card" aria-labelledby="titulo-transporte">
+        <h2 id="titulo-transporte">buses y pilotos</h2>
+        <p>Gestión de los buses, pilotos y asignaciones operativas.</p>
+        <ul class="module-options">
+            <li><a asp-controller="Buses" asp-action="Index">Buses</a></li>
+            <li><a asp-controller="Pilotos" asp-action="Index">Pilotos</a></li>
+            <li><a asp-controller="Asignaciones" asp-action="Index">Asignación de buses a líneas</a></li>
+            <li><a asp-controller="ParqueosBase" asp-action="Index">Asignación de buses a parqueos</a></li>
+            <li><a asp-controller="ConsultasAsignaciones" asp-action="Pilotos">Consulta de pilotos y buses</a></li>
+        </ul>
+    </section>
+
+    <section id="operaciones" class="module-card" aria-labelledby="titulo-operaciones">
+        <h2 id="titulo-operaciones">Operaciones</h2>
+        <p>Control manual de ocupación y espera de buses.</p>
+        <ul class="module-options">
+            <li><a asp-controller="CiclosBuses" asp-action="Index">Operación de buses</a></li>
+            <li><a asp-controller="OperacionBuses" asp-action="Index">Consulta de operaciones por estación</a></li>
+            <li><a asp-controller="ConsultaBuses" asp-action="Index">Buses en operación</a></li>
+            <li><a asp-controller="ParametrosOperacion" asp-action="Index">Parámetros de operación</a></li>
+        </ul>
+    </section>
+
+    <section id="parqueos" class="module-card" aria-labelledby="titulo-parqueos">
+        <h2 id="titulo-parqueos">Parqueos</h2>
+        <p>Parqueos asociados a estaciones y movimientos de vehículos.</p>
+        <ul class="module-options">
+            <li><a asp-controller="Parqueos" asp-action="Index">Parqueos</a></li>
+            <li><a asp-controller="ConsultasAsignaciones" asp-action="Parqueos">Consulta de estaciones, parqueos y buses</a></li>
+        </ul>
+    </section>
+
+    <section id="seguridad" class="module-card" aria-labelledby="titulo-seguridad">
+        <h2 id="titulo-seguridad">Seguridad</h2>
+        <p>Administración de usuarios y roles del sistema.</p>
+        <ul class="module-options">
+            <li><a asp-controller="Usuarios" asp-action="Crear">Crear usuario</a></li>
+            <li><a asp-controller="Roles" asp-action="Index">Roles</a></li>
+        </ul>
+    </section>
+</div>

@@ -1,0 +1,141 @@
+@model EstacionesViewModel
+@using TransMetroUMG.Domain
+@{
+    ViewData["Title"] = "Estaciones";
+    var editando = Model.Formulario.CodEstacion > 0;
+    var municipalidades = Model.Municipalidades.ToDictionary(x => x.Codigo, x => x.Nombre);
+}
+
+<div class="page-heading">
+    <p class="eyebrow">Administración / Estaciones</p>
+    <h1>Estaciones</h1>
+    <p>Registra estaciones y consulta o modifica sus datos.</p>
+</div>
+
+@if (TempData["EstacionGuardada"] is string mensaje)
+{
+    <div class="alert alert-success" role="status">@mensaje</div>
+}
+
+<section class="module-card mb-4" aria-labelledby="titulo-formulario">
+    <h2 id="titulo-formulario">@(editando ? "Editar estación" : "Ingresar estación")</h2>
+    <form asp-action="Guardar" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="Formulario.CodEstacion" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="Formulario.CodMunicipalidad" class="form-label">Municipalidad *</label>
+                <select asp-for="Formulario.CodMunicipalidad" class="form-select">
+                    <option value="">Selecciona una municipalidad</option>
+                    @foreach (var municipalidad in Model.Municipalidades)
+                    {
+                        <option value="@municipalidad.Codigo">@municipalidad.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="Formulario.CodMunicipalidad" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Formulario.Estado" class="form-label">Estado *</label>
+                <select asp-for="Formulario.Estado" asp-items="Html.GetEnumSelectList<EstadoEstacion>()" class="form-select">
+                    <option value="">Selecciona un estado</option>
+                </select>
+                <span asp-validation-for="Formulario.Estado" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Formulario.NombreEstacion" class="form-label">Nombre de la estación *</label>
+                <input asp-for="Formulario.NombreEstacion" class="form-control" maxlength="150" />
+                <span asp-validation-for="Formulario.NombreEstacion" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Formulario.DireccionEstacion" class="form-label">Dirección *</label>
+                <input asp-for="Formulario.DireccionEstacion" class="form-control" maxlength="250" autocomplete="street-address" />
+                <span asp-validation-for="Formulario.DireccionEstacion" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.Latitud" class="form-label"></label>
+                <input asp-for="Formulario.Latitud" class="form-control" type="number" min="-90" max="90" step="any" aria-describedby="ayuda-latitud" />
+                <span asp-validation-for="Formulario.Latitud" class="text-danger"></span>
+                <p id="ayuda-latitud" class="form-text">Entre -90 y 90, hasta 7 decimales. Ejemplo: 14.65388.</p>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.Longitud" class="form-label"></label>
+                <input asp-for="Formulario.Longitud" class="form-control" type="number" min="-180" max="180" step="any" aria-describedby="ayuda-longitud" />
+                <span asp-validation-for="Formulario.Longitud" class="text-danger"></span>
+                <p id="ayuda-longitud" class="form-text">Entre -180 y 180, hasta 7 decimales. Ejemplo: -90.51184.</p>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Formulario.CapacidadPasajeros" class="form-label"></label>
+                <input asp-for="Formulario.CapacidadPasajeros" class="form-control" type="number" min="1" max="2147483647" step="1" aria-describedby="ayuda-capacidad" />
+                <span asp-validation-for="Formulario.CapacidadPasajeros" class="text-danger"></span>
+                <p id="ayuda-capacidad" class="form-text">Pendiente si se deja vacía. Es necesaria para calcular la ocupación y generar alertas desde el 150 %.</p>
+            </div>
+        </div>
+        <p class="form-text mt-3">Los campos marcados con * son obligatorios.</p>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">@(editando ? "Guardar cambios" : "Registrar estación")</button>
+            @if (editando)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar edición</a>
+            }
+            <a asp-controller="Home" asp-action="Index" asp-fragment="administracion" class="btn btn-outline-secondary">Volver al menú</a>
+        </div>
+    </form>
+</section>
+
+<section class="module-card" aria-labelledby="titulo-tabla">
+    <h2 id="titulo-tabla">Estaciones registradas</h2>
+    @if (Model.ErrorCarga)
+    {
+        <div class="alert alert-danger" role="alert">
+            No se pudo consultar el listado. <a asp-action="Index">Reintentar</a>
+        </div>
+    }
+    else if (Model.Registros.Count == 0)
+    {
+        <p role="status">No hay estaciones registradas. Ingresa la primera en el formulario.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <caption>@Model.Registros.Count estaciones registradas.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Código</th>
+                        <th scope="col">Municipalidad</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Dirección</th>
+                        <th scope="col">Latitud</th>
+                        <th scope="col">Longitud</th>
+                        <th scope="col">Capacidad de pasajeros</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var estacion in Model.Registros)
+                    {
+                        <tr>
+                            <td>@estacion.CodEstacion</td>
+                            <td>@municipalidades.GetValueOrDefault(estacion.CodMunicipalidad, estacion.CodMunicipalidad.ToString())</td>
+                            <td>@estacion.NombreEstacion</td>
+                            <td>@estacion.DireccionEstacion</td>
+                            <td>@estacion.Latitud?.ToString("0.#######")</td>
+                            <td>@estacion.Longitud?.ToString("0.#######")</td>
+                            <td>@(estacion.CapacidadPasajeros?.ToString() ?? "Pendiente de configurar")</td>
+                            <td>@estacion.Estado</td>
+                            <td><a asp-action="Index" asp-route-id="@estacion.CodEstacion"
+                                   class="btn btn-sm btn-outline-secondary" aria-label="Editar @estacion.NombreEstacion">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/estaciones.js" asp-append-version="true"></script>
+}
+

@@ -1,0 +1,33 @@
+@model IniciarSesionViewModel
+@{
+    ViewData["Title"] = "Iniciar sesión";
+    ViewData["OcultarMenu"] = true;
+}
+<div class="page-heading">
+    <p class="eyebrow">Seguridad / Iniciar sesión</p>
+    <h1>Iniciar sesión</h1>
+    <p>Ingresa con tu usuario para acceder a TransMetro.</p>
+</div>
+<section class="module-card" aria-labelledby="titulo-acceso">
+    <h2 id="titulo-acceso">Acceso al sistema</h2>
+    <form asp-action="IniciarSesion" method="post" class="user-form">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <input asp-for="ReturnUrl" type="hidden" />
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="NombreUsuario" class="form-label"></label>
+                <input asp-for="NombreUsuario" class="form-control" autocomplete="username" maxlength="100" />
+                <span asp-validation-for="NombreUsuario" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Contrasena" class="form-label"></label>
+                <input asp-for="Contrasena" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Contrasena" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+        </div>
+    </form>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

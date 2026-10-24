@@ -1,0 +1,7 @@
+@model TransMetroUMG.Domain.EstadoEsperaBus
+<div class="small mt-2 @(Model.Estado == "Listo" ? "text-success fw-semibold" : "text-secondary")"
+     data-espera-bus data-estado="@Model.Estado"
+     data-segundos="@Model.SegundosRestantes.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+    <span data-espera-mensaje role="status">@Model.Mensaje</span>
+    <strong class="d-block" data-espera-tiempo></strong>
+</div>
